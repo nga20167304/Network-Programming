@@ -43,16 +43,18 @@ main(int argc, char **argv)
     
  while (fgets(sendline, MAXLINE, stdin) != NULL) {
     
-  send(sockfd, sendline, strlen(sendline), 0);
-        
-  if (recv(sockfd, recvline, MAXLINE,0) == 0){
-   //error: server terminated prematurely
-   perror("The server terminated prematurely"); 
-   exit(4);
-  }
-  printf("%s", "String received from the server: ");
-  fputs(recvline, stdout);
- }
+    send(sockfd, sendline, strlen(sendline), 0);
+          
+    if ( recv(sockfd, recvline, MAXLINE,0) == 0){
+     //error: server terminated prematurely
+     perror("The server terminated prematurely"); 
+     exit(4);
+    }
+    int n=recv(sockfd,recvline,MAXLINE,0);
+    recvline[n-1]='\0';
+    printf("%s", "String received from the server: ");
+    fputs(recvline, stdout);
+   }
 
  exit(0);
 }

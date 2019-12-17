@@ -17,6 +17,25 @@ struct signup{
 		char password[MAXLINE];
 		char email[MAXLINE];
 	};
+int readFile_findKey(char str[255]){
+	char *p;
+    FILE* fp;
+    char buffer[255];
+
+    fp = fopen("infor.txt", "r");
+
+    while(fgets(buffer, 255, (FILE*) fp)) {
+    	p=strtok(buffer,"\n");
+    	//printf("%lu",strlen(p));
+    	if(strcmp(p,str)==0){
+    		puts("Đăng nhập thành công");
+    		return 0;
+    	}
+    }
+    puts("Đăng nhập thất bại");
+    fclose(fp);
+    return 0;
+}
 void checkBuf(char buf[MAXLINE]){
 	char *p;
 	int index = 0;
@@ -24,7 +43,7 @@ void checkBuf(char buf[MAXLINE]){
 	char signal[MAXLINE];
 
 	FILE *fptr;
-	fptr=fopen("infor.txt","w");
+	fptr=fopen("infor.txt","r");
 	if(fptr==NULL){
 		printf("Error\n" );
 		exit(1);
@@ -32,14 +51,19 @@ void checkBuf(char buf[MAXLINE]){
 	struct signin sign_in;
 	struct signup sign_up;
 
+	puts(buf);
 	p=strtok(buf," ");
 	while(p!=NULL){
 		b[index]=p;
 		index++;
 		p=strtok(NULL," ");
 	}
+	//printf("%s\n", buf);
+	char login[255];
+	char space[2]=" ";
 	
-	strcpy(signal,b[0]);
+	strcpy(signal,buf);
+	puts(signal);
 	// mess.signal=b[0];
 	// mess.username=b[1];
 	// mess.password=b[2];
@@ -47,10 +71,15 @@ void checkBuf(char buf[MAXLINE]){
 		strcpy(sign_in.username,b[1]);
 		strcpy(sign_in.password,b[2]);
 		//Doc file de so sanh xem co tai khoan khong sau do moi cho dang nhap
-		fprintf(fptr, "%s %s\n", sign_in.username,sign_in.password);
-		printf("Kieu: %s username: %s password: %s",signal,sign_in.username,sign_in.password);
+		strcpy(login,b[1]);
+		strcat(login,space);
+		strcat(login,b[2]);
+		puts(login);
+		readFile_findKey(login);
+		//fprintf(fptr, "%s %s\n", sign_in.username,sign_in.password);
+		//printf("Kieu: %s username: %s password: %s",signal,sign_in.username,sign_in.password);
 	}
-	if(strcmp(signal,"signup")==0){
+	else if(strcmp(signal,"signup")==0){
 		strcpy(sign_up.username,b[1]);
 		strcpy(sign_up.password,b[2]);
 		strcpy(sign_up.email,b[3]);
@@ -59,12 +88,14 @@ void checkBuf(char buf[MAXLINE]){
 	}
 	fclose(fptr);
 }
+
 int main (int argc, char **argv)
 {
  int listenfd, connfd, n;
  pid_t childpid;
  socklen_t clilen;
  char buf[MAXLINE];
+ char buf1[MAXLINE];
  struct sockaddr_in cliaddr, servaddr;
 	
  //creation of the socket
@@ -88,10 +119,14 @@ int main (int argc, char **argv)
   printf("%s\n","Received request...");
 				
   while ( (n = recv(connfd, buf, MAXLINE,0)) > 0)  {
-   printf("%s","String received from and resent to the client:");
-   puts(buf);
-   send(connfd, buf, n, 0);
-   checkBuf(buf);
+  	buf[n-1]='\0';
+   	printf("%s","String received from and resent to the client:");
+   	puts(buf);
+   	strcpy(buf1,buf);
+   	//printf("%s",buf1);
+   	puts(buf1);
+   	checkBuf(buf1);
+   	send(connfd, buf, n-1, 0);
   }
 			
  if (n < 0) {

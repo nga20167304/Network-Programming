@@ -111,7 +111,6 @@ int signup(){
 }
 
 int responseRank = 0;
-
 void * handleRank(void * sockfd) {
   char buffer[64];
   int n;
@@ -144,8 +143,7 @@ int rank(){
       perror("ERROR writing to socket");
       exit(1);
    }
-   printf("nWaiting...\n");
-   while(responseRank == 0) {
+    while(responseRank == 0) {
 
    }
 }
@@ -165,7 +163,6 @@ void play() {
      bzero(buffer, 64);
      fgets(buffer, 64, stdin);
      fflush(stdin);
-     printf("buffer: %s\n", buffer);
      /* Send message to the server */
      n = write(sockfd, buffer, strlen(buffer));//gửi dl lên server 
 
@@ -216,14 +213,14 @@ int main(int argc, char *argv[]) {//97-136:kết nối đến server
   char username[256];
   char password[256];
   char menu[64];
-  printf("1.LOGIN\n");
-  printf("2.SIGNUP\n");
-  printf("3.START PLAY\n");
-  printf("4.RANK\n\n");
+//  printf("1.LOGIN\n");
+//  printf("2.SIGNUP\n");
+  printf("1.START PLAY\n");
+  printf("2.RANK\n\n");
   printf("Enter your choose: ");
   fgets(menu, 64, stdin);
   switch(menu[0]){
-    case '1':{
+  /*  case '1':{
       printf("Username\n");
       scanf( "%s", username);
       printf("password\n");
@@ -234,12 +231,12 @@ int main(int argc, char *argv[]) {//97-136:kết nối đến server
       }
     case '2':{
         
-    }
-    case '3':{
+    }*/
+    case '1':{
       play();
       break;
     }
-    case '4':{
+    case '2':{
       rank();
       break;
     }

@@ -491,133 +491,14 @@ void * game_room(void *client_socket) {
 
 }
 
-void game_room2(int client_socket) {
-  /* If connection is established then start communicating */
-  int player_one = client_socket;
-  int n, player_two;
-  char buffer[64];
-  int * move = (int *)malloc(sizeof(int)*4);
-
-  // Create a new board
-  wchar_t ** board = create_board();
-  char * one_dimension_board = create_od_board();
-  initialize_board(board);
-
-  player_is_waiting = 1; // Set user waiting
-
-  pthread_mutex_lock(&general_mutex); // Wait for player two
-  pthread_cond_wait(&player_to_join, &general_mutex); // Wait for player wants to join signal
-
-  // TODO lock assigning player mutex
-  player_two = challenging_player; // Asign the player_two to challenging_player
-  player_is_waiting = 0; // Now none is waiting
-
-  pthread_mutex_unlock(&general_mutex); // Unecesary?
-  //kiem tra ket noi tu server den client 1,2 co oke k
-  if (send(player_one, "i-p1", 4, 0) < 0) {
-     perror("ERROR writing to socket");
-     exit(1);
-  }
-  if (send(player_two, "i-p2", 4, 0) < 0) {
-     perror("ERROR writing to socket");
-     exit(1);
-  }
-
-  sleep(1);//dung hoat dong cua luong trong 1s
-
-  // Broadcast the board to all the room players
-  broadcast(board, one_dimension_board, player_one, player_two);//dui du lieu ban co one_dimension_board 
-
-  sleep(1);
-
-  bool syntax_valid = false;
-  bool move_valid = false;
-
-  while (1) {//xu li nuoc di 
-
-    send(player_one, "i-tm", 4, 0);
-    send(player_two, "i-nm", 4, 0);
-
-    // Wait until syntax and move are valid
-    printf("Waiting for move from player one (%d)... sending i\n", player_one);
-
-    while (!syntax_valid  || !move_valid) {//xu li nuoc di cho thang 1 
-      bzero(buffer, 64);//khoi tao mang ten la buffe co kich thuoc 64
-
-      printf("Checking syntax and move validation (%d,%d)\n", syntax_valid, move_valid);
-      if (read(player_one, buffer, 6) < 0) {//doc dl tư client tư client gui cho server khi di ,nuoc di nhap vao mang buffe 
-        perror("ERROR reading from socket");
-        exit(1);
-      }
-      printf("Player one (%d) move: %s\n", player_one, buffer);
-
-      syntax_valid = is_syntax_valid(player_one, buffer);//kiem tra cu phap nuoc di co dung k
-
-      translate_to_move(move, buffer); // Convert to move
-
-      // TODO
-      move_valid = is_move_valid(board, player_one, 1, move);//kiem tra nuoc di co hop le k
-    }
-
-    printf("Player one (%d) made move\n", player_one);
-
-    syntax_valid = false;
-    move_valid = false;
-
-    // Apply move to board
-    move_piece(board, move);
-
-    // Send applied move board
-    broadcast(board, one_dimension_board, player_one, player_two);//gui dl den tat ca nguoi choi trong 1 ban co 
-    sleep(1);
-    send(player_one, "i-nm", 4, 0);
-    send(player_two, "i-tm", 4, 0);
-
-    printf("Waiting for move from player two (%d)\n", player_two);
-
-    while (!syntax_valid  || !move_valid) {
-      bzero(buffer, 64);
-
-      if (read(player_two, buffer, 6) < 0) {
-        perror("ERROR reading from socket");
-        exit(1);
-      }
-
-      syntax_valid = is_syntax_valid(player_two, buffer);
-
-      translate_to_move(move, buffer); // Convert to move
-
-      move_valid = is_move_valid(board, player_two, -1, move);
-    }
-    printf("Player two (%d) made move\n", player_two);
-
-    syntax_valid = false;
-    move_valid = false;
-
-    // Apply move to board
-    move_piece(board, move);
-
-    // Send applied move board
-    broadcast(board, one_dimension_board, player_one, player_two);
-    sleep(1);
-
-  }
-
-  /* delete board */
-  free(move);
-  free_board(board);
-
-}
-
 void * on_request(void * client_socket) {
   int sockfd = *(int *)client_socket;
   char buffer[64];
-  memset(buffer, 0, 64);
+  memset(buffer, 0, 64);//set buffer về 0
   int n = read(sockfd,buffer, 64);
   if (n < 0)     {
      printf("ERROR on receive\n");
    }
-   printf("buffer: %s.%d\n", buffer, n);
    if (strcmp(buffer, "rank") == 0){
       char rank[] = "1. Hanh 2. Hoa";
       n = write(sockfd, rank, strlen(rank)); 
@@ -626,7 +507,7 @@ void * on_request(void * client_socket) {
       }
       printf("Rank: %s\n", rank);
       sleep(1);
-   } else {
+   } else if (strcmp(buffer, "play") == 0){
     pthread_mutex_lock(&general_mutex); // Unecesary?
      // Create thread if we have no user waiting
      if (player_is_waiting == 0) {//bien dem xem có bn ng dang cho 

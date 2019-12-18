@@ -1,9 +1,13 @@
 # Network-Programming
 Build
+
 -server: gcc -o server server.c
 -------
 -client: gcc -o client client.c
+
+
 Run
+
 
 server: ./server
 ------

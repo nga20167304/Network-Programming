@@ -143,9 +143,14 @@ int rank(){
       perror("ERROR writing to socket");
       exit(1);
    }
-    while(responseRank == 0) {
+// <<<<<<< HEAD
+//     while(responseRank == 0) {
+// =======
+//    printf("Waiting...\n");
+//    while(responseRank == 0) {
+// >>>>>>> update
 
-   }
+   // }
 }
 
 void play() {

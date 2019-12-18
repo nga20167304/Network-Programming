@@ -121,6 +121,15 @@ void checkBuf(char buf[MAXLINE]){
 		fprintf(fptr_signup, "%s %s %s\n", sign_up.username,sign_up.password,sign_up.email);
 		//printf("Kieu: %s username: %s password: %s email:%s",signal,sign_up.username,sign_up.password,sign_up.email);
 	}
+	else if(strcmp(signal,"play")==0){
+
+	}
+	else if(strcmp(signal,"rank")==0){
+
+	}
+	else if(strcmp(signal,"logout")==0){
+		
+	}
 	fclose(fptr);
 }
 

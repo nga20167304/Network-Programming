@@ -12,14 +12,25 @@
 #include <locale.h>
 #include <signal.h>
 
+#include "linklist.h"
+#include "checkinput.h"
 #include "board.c"
 
-#define PORT 8080;
+#define SIGNAL_PLAY "SIGNAL_PLAY"
+#define SIGNAL_LOGIN "SIGNAL_LOGIN"
+#define SIGNAL_RANKING "SIGNAL_RANKING"
+#define SIGNAL_ERROR "SIGNAL_ERROR"
+#define SIGNAL_OK "SIGNAL_OK"
+#define SIGNAL_CREATEUSER "SIGNAL_CREATEUSER"
 
 // Waiting player conditional variable
 pthread_cond_t player_to_join;
 pthread_mutex_t general_mutex;
 pthread_t tid[2];
+
+char token[] = "#";
+char send_msg[1024];
+char recv_msg[1024];
 
 
 bool is_diagonal(int, int);
@@ -490,45 +501,125 @@ void * game_room(void *client_socket) {
   free_board(board);
 
 }
-
+int isValid(char* username, char* password){
+  FILE* f = fopen("user.txt", "r+");
+  if(f == NULL ){
+    printf("Error open file!!!\n");
+    return 0;
+  }
+  char line[100];
+  char* temp;  
+  if( password != NULL){
+    while(fgets( line, 100, f) != NULL){
+      temp = line;
+      while(temp[0] != '#') temp++; // get user pass, gap # thi dung
+      temp[0] = '\0';
+      temp++;
+      if(temp[strlen(temp) - 1] == '\n') temp[strlen(temp) - 1] = '\0';
+      if(strcmp(line, username) == 0 && strcmp(temp, password) == 0){
+      	fclose(f);
+      	return 1;
+      }
+    }
+    fclose(f);
+    return 0;
+  } else{
+    while(fgets(line, 100, f) != NULL){
+      temp = line;
+      while(temp[0] != '#') temp++;
+      temp[0] = '\0';      
+      if(strcmp(line, username) == 0){
+      	fclose(f);
+      	return 1;
+      }
+    }
+    fclose(f);
+    return 0;
+  }  
+}
+void registerUser(char* username, char* password){
+  FILE* f = fopen("user.txt", "a");
+  fprintf(f, "%s#%s\n", username, password);
+  fclose(f);
+}
 void * on_request(void * client_socket) {
   int sockfd = *(int *)client_socket;
+  while(1){
   char buffer[64];
   memset(buffer, 0, 64);//set buffer về 0
   int n = read(sockfd,buffer, 64);
   if (n < 0)     {
      printf("ERROR on receive\n");
    }
+   printf("%s\n",buffer);
    if (strcmp(buffer, "rank") == 0){
-      char rank[] = "1. Hanh 2. Hoa";
-      n = write(sockfd, rank, strlen(rank)); 
-      if (n < 0)      {
-        printf("ERROR rank\n");
-      }
-      printf("Rank: %s\n", rank);
-      sleep(1);
-   } else if (strcmp(buffer, "play") == 0){
-    pthread_mutex_lock(&general_mutex); // Unecesary?
-     // Create thread if we have no user waiting
-     if (player_is_waiting == 0) {//bien dem xem có bn ng dang cho 
-       printf("Connected player, creating new game room...\n");
-       pthread_create(&tid[0], NULL, &game_room, &sockfd);//ham tao ra 1 luong chay ham game_room 
-       pthread_mutex_unlock(&general_mutex); // Unecesary?
-     }
-     // If we've a user waiting join that room
-     else {
-       // Send user two signal
-       printf("Connected player, joining game room... %d\n", sockfd);
-       challenging_player = sockfd;//socket id cua thang thu 2
-       pthread_mutex_unlock(&general_mutex); // Unecesary?
-       pthread_cond_signal(&player_to_join);//gui ra 1 tin hieu den o nhơ cua  bien 
-     }
+      
    }
+   else if (strcmp(buffer,SIGNAL_LOGIN) == 0){
+        char *user, *pass;
+        int n = read(sockfd,recv_msg, 64);
+        user = strtok(recv_msg, token);
+        pass = strtok(NULL, token);
+        if(isValid(user, pass)) strcpy(send_msg, SIGNAL_OK);
+        else sprintf( send_msg,"%s#%s", SIGNAL_ERROR, "Username or Password is incorrect");
+        send(sockfd, send_msg, strlen(send_msg), 0);
+     } 
+     else if(strcmp(buffer,SIGNAL_CREATEUSER) == 0){
+        char *user, *pass, *repass;
+        int n = read(sockfd,recv_msg, 64);
+        user = strtok(recv_msg, token);
+        pass = strtok(NULL, token);
+        repass = strtok(NULL, token);
+        if(isValid(user, NULL)){
+          sprintf(send_msg,"%s#%s",SIGNAL_ERROR, "Account existed");
+        }
+        else{
+          if(strcmp(pass,repass)!=0){
+            sprintf(send_msg,"%s#%s",SIGNAL_ERROR, "Password does not match");
+          }
+          else{
+            registerUser(user, pass);
+            sprintf(send_msg, SIGNAL_OK);
+          }
+        }
+        send(sockfd, send_msg, strlen(send_msg), 0);
+     }
+     else if(strcmp(buffer,SIGNAL_RANKING) ==0){
+       printf("rank");
+     }
+      else if (strcmp(buffer, SIGNAL_PLAY) == 0){
+        pthread_mutex_lock(&general_mutex); // Unecesary?
+        // Create thread if we have no user waiting
+        if (player_is_waiting == 0) {//bien dem xem có bn ng dang cho 
+          printf("Connected player, creating new game room...\n");
+          pthread_create(&tid[0], NULL, &game_room, &sockfd);//ham tao ra 1 luong chay ham game_room 
+          pthread_mutex_unlock(&general_mutex); // Unecesary?
+        }
+        // If we've a user waiting join that room
+        else {
+          // Send user two signal
+          printf("Connected player, joining game room... %d\n", sockfd);
+          challenging_player = sockfd;//socket id cua thang thu 2
+          pthread_mutex_unlock(&general_mutex); // Unecesary?
+          pthread_cond_signal(&player_to_join);//gui ra 1 tin hieu den o nhơ cua  bien 
+        }
+      }
+  }
 }
 
 
 
 int main( int argc, char *argv[] ) {
+  if(argc != 2){
+    printf("Syntax Error.\n");
+    printf("Syntax: ./server PortNumber\n");
+    return 0;
+  }
+  if(check_port(argv[1]) == 0){
+    printf("Port invalid\n");
+    return 0;
+  }
+  int PORT = atoi(argv[1]);
   setlocale(LC_ALL, "en_US.UTF-8");
 
   int sockfd, client_socket, port_number, client_length;
@@ -550,11 +641,10 @@ int main( int argc, char *argv[] ) {
 
   /* Initialize socket structure */
   bzero((char *) &server_address, sizeof(server_address));
-  port_number = PORT;
 
   server_address.sin_family = AF_INET;//mac dinh 
   server_address.sin_addr.s_addr = INADDR_ANY;//ip server 
-  server_address.sin_port = htons(port_number);//port number 
+  server_address.sin_port = htons(PORT);//port number 
 
   /* Now bind the host address using bind() call.*/
   if (bind(sockfd, (struct sockaddr *) &server_address, sizeof(server_address)) < 0) {
@@ -564,7 +654,7 @@ int main( int argc, char *argv[] ) {
 
           /* MAX_QUEUE */
   listen(sockfd, 20);
-  printf("Server listening on port %d\n", port_number);
+  printf("Server listening on port %d\n", PORT);
 
    while(1) {
      client_length = sizeof(client);

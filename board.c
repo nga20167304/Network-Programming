@@ -1,5 +1,6 @@
 #include <wchar.h>
 #include <locale.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define white_king   0x2654 // ♔
@@ -173,4 +174,3 @@ static void print_board_buff_inverted(char * board) {
   printf("       └───┴───┴───┴───┴───┴───┴───┴───┘   \n");
   printf("         a   b   c   d   e   f   g   h     \n\n");
 }
-

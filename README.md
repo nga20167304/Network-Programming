@@ -1,12 +1,5 @@
 # Network-Programming
 Build
--server: gcc -o server server.c
--------
--client: gcc -o client client.c
-Run
-
-server: ./server
-------
-client: ./client address_ip
-
-ifconfig để kiểm tra địa chỉ ip
+run command: make (xoá file server.o and client.o trước khi make)
+run server: ./server port (port tuỳ ý)
+run client: ./client IP address port
